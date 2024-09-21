@@ -9,22 +9,18 @@ def nozzle_area(x, L):
         return 0.5 + 0.5 * ((x - 0.5 * L) / (0.5 * L))**2
 
 def maccormack_solver(nx, nt, L, CFL, gamma):
-    # Initialize arrays
+    
     x = np.linspace(0, L, nx)
     dx = L / (nx - 1)
     A = np.array([nozzle_area(xi, L) for xi in x])
     
-    # Initial conditions (subsonic inlet)
     rho = np.ones(nx)
     u = np.ones(nx) * 0.1
     p = np.ones(nx)
     
-    # Time-stepping
     for n in range(nt):
-        # Compute time step
         dt = CFL * dx / np.max(u + np.sqrt(gamma * p / rho))
         
-        # Predictor step
         rho_p = np.zeros(nx)
         u_p = np.zeros(nx)
         p_p = np.zeros(nx)
@@ -43,7 +39,6 @@ def maccormack_solver(nx, nt, L, CFL, gamma):
             p_p[i] = (gamma - 1) * (rho_p[i] * (gamma / (gamma - 1) * p[i] / rho[i] + 0.5 * u[i]**2) - 
                                     dt / dx * (F3_plus - F3) - 0.5 * rho_p[i] * u_p[i]**2)
         
-        # Corrector step
         for i in range(1, nx-1):
             F1 = rho_p[i] * u_p[i] * A[i]
             F2 = (rho_p[i] * u_p[i]**2 + p_p[i]) * A[i]
@@ -58,26 +53,21 @@ def maccormack_solver(nx, nt, L, CFL, gamma):
             p[i] = 0.5 * (p[i] + (gamma - 1) * (rho[i] * (gamma / (gamma - 1) * p_p[i] / rho_p[i] + 0.5 * u_p[i]**2) - 
                                                 dt / dx * (F3 - F3_minus) - 0.5 * rho[i] * u[i]**2))
         
-        # Apply boundary conditions
         rho[0], u[0], p[0] = 1.0, 0.1, 1.0  # Subsonic inlet
         rho[-1], u[-1], p[-1] = 2 * rho[-2] - rho[-3], 2 * u[-2] - u[-3], 2 * p[-2] - p[-3]  # Extrapolation at outlet
     
     return x, rho, u, p
 
-# Set parameters
 nx = 101
 nt = 5000
 L = 3.0
 CFL = 0.5
 gamma = 1.4
 
-# Solve the problem
 x, rho, u, p = maccormack_solver(nx, nt, L, CFL, gamma)
 
-# Calculate Mach number
 M = u / np.sqrt(gamma * p / rho)
 
-# Plot results
 plt.figure(figsize=(12, 8))
 plt.subplot(2, 2, 1)
 plt.plot(x, rho)
